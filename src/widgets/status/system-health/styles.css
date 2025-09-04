@@ -1,0 +1,140 @@
+.system-health-widget {
+  min-width: 300px;
+  min-height: 250px;
+}
+
+.system-health-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Status Overview */
+.status-overview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+}
+
+.status-indicator-large {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.status-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-text {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.status-subtext {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.system-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* Health Details */
+.health-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.detail-value {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Service Status */
+.service-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md);
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+}
+
+.service-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.service-status-text {
+  margin-left: auto;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .status-overview {
+    flex-direction: column;
+    gap: var(--space-md);
+    text-align: center;
+  }
+  
+  .system-metrics {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
