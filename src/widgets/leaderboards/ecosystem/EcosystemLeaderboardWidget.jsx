@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import BaseWidget from '../../../core/base/BaseWidget.jsx';
 import { formatKarrat, truncateAddress, formatNumber } from '../../../core/utils/formatters.js';
-import { Trophy, Medal, Award, TrendingUp, Users, Coins, Crown, Star, Minimize2, Maximize2 } from 'lucide-react';
+import { 
+  Trophy, Medal, Award, TrendingUp, Users, Coins, Crown, Star, 
+  Minimize2, Maximize2, Search, ChevronLeft, ChevronRight,
+  Copy, Check, ArrowUpDown
+} from 'lucide-react';
 import './styles.css';
 
 const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...props }) => {
   const [isMinimal, setIsMinimal] = useState(false);
   const [sortBy, setSortBy] = useState('rank');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [copiedAddress, setCopiedAddress] = useState(null);
 
   const fetchLeaderboardData = async () => {
     try {
@@ -59,6 +67,16 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
     return <span className="rank-number">#{rank}</span>;
   };
 
+  const copyAddress = async (address) => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopiedAddress(address);
+      setTimeout(() => setCopiedAddress(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy address:', err);
+    }
+  };
+
   const sortData = (data, field, order) => {
     return [...data].sort((a, b) => {
       let aVal = a[field];
@@ -84,6 +102,88 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
       setSortBy(field);
       setSortOrder('asc');
     }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  const filteredAndSortedData = useMemo(() => {
+    return (leaders) => {
+      if (!Array.isArray(leaders)) return [];
+      
+      // Filter by search term
+      let filtered = leaders;
+      if (searchTerm) {
+        filtered = leaders.filter(leader => 
+          leader.address.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      
+      // Sort data
+      const sorted = sortData(filtered, sortBy, sortOrder);
+      
+      return sorted;
+    };
+  }, [searchTerm, sortBy, sortOrder]);
+
+  const paginatedData = useMemo(() => {
+    return (data) => {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      return data.slice(startIndex, endIndex);
+    };
+  }, [currentPage, itemsPerPage]);
+
+  const renderPaginationControls = (totalItems) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    
+    return (
+      <div className="pagination-controls">
+        <div className="pagination-info">
+          <span>
+            Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}
+          </span>
+        </div>
+        
+        <div className="pagination-size">
+          <label>Show:</label>
+          <select 
+            value={itemsPerPage} 
+            onChange={(e) => {
+              setItemsPerPage(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+        </div>
+        
+        <div className="pagination-buttons">
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft size={16} />
+            Previous
+          </button>
+          
+          <span className="page-info">
+            Page {currentPage} of {totalPages}
+          </span>
+          
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const renderMinimalContent = (data) => {
@@ -150,7 +250,8 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
       );
     }
 
-    const sortedLeaders = sortData(leaders, sortBy, sortOrder);
+    const processedData = filteredAndSortedData(leaders);
+    const currentPageData = paginatedData(processedData);
 
     return (
       <div className="leaderboard-content">
@@ -158,10 +259,23 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
           <div className="header-info">
             <div className="leaderboard-stats">
               <TrendingUp size={16} />
-              <span>{leaders.length} ecosystem participants</span>
+              <span>{processedData.length} participants {searchTerm && `(filtered from ${leaders.length})`}</span>
             </div>
           </div>
           <div className="header-controls">
+            <div className="search-container">
+              <Search size={14} />
+              <input
+                type="text"
+                placeholder="Search address..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="search-input"
+              />
+            </div>
             <button 
               onClick={() => setIsMinimal(true)}
               className="toggle-button"
@@ -178,45 +292,65 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
               <tr>
                 <th 
                   onClick={() => handleSort('rank')}
-                  className={`sortable ${sortBy === 'rank' ? `sorted-${sortOrder}` : ''}`}
+                  className={`sortable rank-header ${sortBy === 'rank' ? `sorted-${sortOrder}` : ''}`}
                 >
-                  Rank
+                  <div className="th-content">
+                    <span>Rank</span>
+                    <ArrowUpDown size={12} />
+                  </div>
                 </th>
                 <th 
                   onClick={() => handleSort('address')}
-                  className={`sortable ${sortBy === 'address' ? `sorted-${sortOrder}` : ''}`}
+                  className={`sortable address-header ${sortBy === 'address' ? `sorted-${sortOrder}` : ''}`}
                 >
-                  Address
+                  <div className="th-content">
+                    <span>Address</span>
+                    <ArrowUpDown size={12} />
+                  </div>
                 </th>
                 <th 
                   onClick={() => handleSort('ecosystem_score')}
-                  className={`sortable ${sortBy === 'ecosystem_score' ? `sorted-${sortOrder}` : ''}`}
+                  className={`sortable score-header ${sortBy === 'ecosystem_score' ? `sorted-${sortOrder}` : ''}`}
                 >
-                  Score
+                  <div className="th-content">
+                    <span>Score</span>
+                    <ArrowUpDown size={12} />
+                  </div>
                 </th>
                 <th 
                   onClick={() => handleSort('karrat_balance')}
-                  className={`sortable ${sortBy === 'karrat_balance' ? `sorted-${sortOrder}` : ''}`}
+                  className={`sortable karrat-header ${sortBy === 'karrat_balance' ? `sorted-${sortOrder}` : ''}`}
                 >
-                  KARRAT
+                  <div className="th-content">
+                    <span>KARRAT</span>
+                    <ArrowUpDown size={12} />
+                  </div>
                 </th>
                 <th 
                   onClick={() => handleSort('nft_count')}
-                  className={`sortable ${sortBy === 'nft_count' ? `sorted-${sortOrder}` : ''}`}
+                  className={`sortable nft-header ${sortBy === 'nft_count' ? `sorted-${sortOrder}` : ''}`}
                 >
-                  NFTs
+                  <div className="th-content">
+                    <span>NFTs</span>
+                    <ArrowUpDown size={12} />
+                  </div>
                 </th>
                 <th 
                   onClick={() => handleSort('collections_owned')}
-                  className={`sortable ${sortBy === 'collections_owned' ? `sorted-${sortOrder}` : ''}`}
+                  className={`sortable collections-header ${sortBy === 'collections_owned' ? `sorted-${sortOrder}` : ''}`}
                 >
-                  Collections
+                  <div className="th-content">
+                    <span>Collections</span>
+                    <ArrowUpDown size={12} />
+                  </div>
                 </th>
-                <th>Tier</th>
+                <th className="tier-header">
+                  <span>Tier</span>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {sortedLeaders.map((leader) => (
+              {currentPageData.map((leader) => (
                 <tr 
                   key={leader.address}
                   className="leaderboard-row"
@@ -229,9 +363,21 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
                     {getRankIcon(leader.rank)}
                   </td>
                   <td className="address-cell">
-                    <span className="address-display">
-                      {truncateAddress(leader.address)}
-                    </span>
+                    <div className="address-container">
+                      <span className="address-display">
+                        {truncateAddress(leader.address)}
+                      </span>
+                      <button
+                        className={`copy-btn ${copiedAddress === leader.address ? 'copied' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyAddress(leader.address);
+                        }}
+                        title={copiedAddress === leader.address ? 'Copied!' : 'Copy full address'}
+                      >
+                        {copiedAddress === leader.address ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    </div>
                   </td>
                   <td className="score-cell">
                     <span className="score-value">
@@ -272,6 +418,8 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
             </tbody>
           </table>
         </div>
+
+        {renderPaginationControls(processedData.length)}
       </div>
     );
   };
@@ -282,7 +430,6 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
 
   return (
     <BaseWidget
-      title="Ecosystem Leaderboard"
       fetchData={fetchLeaderboardData}
       renderContent={renderContent}
       refreshInterval={refreshInterval}

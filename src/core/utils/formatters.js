@@ -25,6 +25,14 @@ export const formatKarrat = (amount) => {
   return `${Number(amount).toLocaleString()} KARRAT`;
 };
 
+export const formatNumber = (number, decimals = 0) => {
+  if (number === null || number === undefined || isNaN(number)) return '0';
+  return Number(number).toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+};
+
 export const truncateAddress = (address, startLength = 6, endLength = 4) => {
   if (!address) return '';
   if (address.length <= startLength + endLength) return address;
