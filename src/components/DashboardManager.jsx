@@ -56,9 +56,7 @@ const WIDGET_REGISTRY = {
     tags: ['health', 'monitoring', 'api', 'uptime'],
     defaultSize: { width: 400, height: 300 },
     mobileSize: { width: 350, height: 250 },
-    minSize: { width: 300, height: 200 },
-    mobileMinSize: { width: 280, height: 180 },
-    icon: '🟢',
+    icon: '🌐',
     mobileOptimized: true
   },
   
@@ -70,8 +68,6 @@ const WIDGET_REGISTRY = {
     tags: ['whale', 'alerts', 'transactions', 'monitoring'],
     defaultSize: { width: 500, height: 400 },
     mobileSize: { width: 350, height: 300 },
-    minSize: { width: 400, height: 350 },
-    mobileMinSize: { width: 300, height: 250 },
     icon: '🐋',
     mobileOptimized: true
   },
@@ -82,10 +78,8 @@ const WIDGET_REGISTRY = {
     description: 'View top ecosystem participants and their rankings',
     category: 'Leaderboards',
     tags: ['leaderboard', 'ecosystem', 'rankings', 'users'],
-    defaultSize: { width: 600, height: 500 },
+    defaultSize: { width: 400, height: 420 },
     mobileSize: { width: 350, height: 400 },
-    minSize: { width: 500, height: 400 },
-    mobileMinSize: { width: 320, height: 350 },
     icon: '🏆',
     mobileOptimized: true
   }
@@ -113,7 +107,6 @@ const WidgetLibrary = ({ isOpen, onClose, onAddWidget, existingWidgets }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [previewWidget, setPreviewWidget] = useState(null);
-  const [isPreviewMinimal, setIsPreviewMinimal] = useState(isMobile());
 
   const categories = useMemo(() => {
     const cats = new Set(['All']);
@@ -240,22 +233,13 @@ const WidgetLibrary = ({ isOpen, onClose, onAddWidget, existingWidgets }) => {
         {/* Mobile-optimized Preview Modal */}
         {previewWidget && (
           <div className="widget-preview-overlay">
-            <div className={`widget-preview-modal ${isPreviewMinimal ? 'minimal' : 'full'}`}>
+            <div className="widget-preview-modal full">
               <div className="preview-header">
                 <div className="preview-title">
                   <span>{previewWidget.config.icon}</span>
                   <h4>{previewWidget.config.name}</h4>
                 </div>
                 <div className="preview-controls">
-                  {!isMobile() && (
-                    <button
-                      className="preview-toggle"
-                      onClick={() => setIsPreviewMinimal(!isPreviewMinimal)}
-                      title={isPreviewMinimal ? 'Expand preview' : 'Minimize preview'}
-                    >
-                      {isPreviewMinimal ? <Maximize2 size={12} /> : <Minimize2 size={12} />}
-                    </button>
-                  )}
                   <button
                     className="add-from-preview-btn"
                     onClick={() => {
@@ -281,10 +265,10 @@ const WidgetLibrary = ({ isOpen, onClose, onAddWidget, existingWidgets }) => {
                   style={{
                     width: isMobile() 
                       ? (previewWidget.config.mobileSize?.width || 300)
-                      : (isPreviewMinimal ? 300 : previewWidget.config.defaultSize.width),
+                      : previewWidget.config.defaultSize.width,
                     height: isMobile() 
                       ? (previewWidget.config.mobileSize?.height || 200)
-                      : (isPreviewMinimal ? 200 : previewWidget.config.defaultSize.height)
+                      : previewWidget.config.defaultSize.height
                   }}
                 >
                   {React.createElement(previewWidget.config.component, {
@@ -470,11 +454,9 @@ const DashboardManager = () => {
       const rawWidth = resizeState.startSize.width + deltaX;
       const rawHeight = resizeState.startSize.height + deltaY;
       
-      const widgetConfig = WIDGET_REGISTRY[widgets.find(w => w.id === resizeState.widgetId)?.type];
-      const mobile = currentViewMode === 'mobile';
-      const minSize = mobile ? (widgetConfig?.mobileMinSize || widgetConfig?.minSize) : widgetConfig?.minSize;
-      const minWidth = minSize?.width || currentGridSize * 10;
-      const minHeight = minSize?.height || currentGridSize * 8;
+      // Allow resizing down to a small size, removing the larger minimum constraints
+      const minWidth = currentGridSize * 2;
+      const minHeight = currentGridSize * 2;
       
       const snappedWidth = Math.max(minWidth, Math.round(rawWidth / currentGridSize) * currentGridSize);
       const snappedHeight = Math.max(minHeight, Math.round(rawHeight / currentGridSize) * currentGridSize);
@@ -495,7 +477,7 @@ const DashboardManager = () => {
     }
     
     setIsInvalidDrop(isColliding);
-  }, [dragState, resizeState, widgets, updatePosition, updateSize, currentGridSize, currentViewMode]);
+  }, [dragState, resizeState, widgets, updatePosition, updateSize, currentGridSize]);
 
   const handleInteractionEnd = useCallback(() => {
     if (isInvalidDrop) {
@@ -687,7 +669,7 @@ const DashboardManager = () => {
                       setWidgets(prev => prev.filter(w => w.id !== widget.id));
                     }}
                   >
-                    ×
+                    <X size={14} />
                   </button>
                 </div>
               </div>

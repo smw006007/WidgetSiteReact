@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import BaseWidget from '../../../core/base/BaseWidget.jsx';
 import { formatKarrat, truncateAddress, formatNumber } from '../../../core/utils/formatters.js';
 import { 
-  Trophy, Medal, Award, TrendingUp, Users, Coins, Crown, Star, 
-  Minimize2, Maximize2, Search, ChevronLeft, ChevronRight,
-  Copy, Check, ArrowUpDown
+  Trophy, Medal, TrendingUp, Crown, Star, 
+  Search, ChevronLeft, ChevronRight,
+  Copy, Check, ArrowUpDown, Maximize2, X
 } from 'lucide-react';
 import './styles.css';
 
 const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...props }) => {
-  const [isMinimal, setIsMinimal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState('rank');
   const [sortOrder, setSortOrder] = useState('asc');
   const [searchTerm, setSearchTerm] = useState('');
@@ -198,8 +199,6 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
       );
     }
 
-    const topThree = leaders.slice(0, 3);
-
     return (
       <div className="leaderboard-minimal">
         <div className="minimal-header">
@@ -208,30 +207,37 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
             <span>Top {leaders.length}</span>
           </div>
           <button 
-            onClick={() => setIsMinimal(false)}
+            onClick={() => setIsModalOpen(true)}
             className="toggle-button"
             title="Expand view"
           >
             <Maximize2 size={14} />
           </button>
         </div>
-
-        <div className="minimal-podium">
-          {topThree.map((leader, index) => (
-            <div key={leader.address} className={`podium-position pos-${index + 1}`}>
-              <div className="podium-rank">
-                {getRankIcon(leader.rank)}
-              </div>
-              <div className="podium-details">
-                <div className="podium-address">
-                  {truncateAddress(leader.address, 4, 4)}
-                </div>
-                <div className="podium-score">
-                  {formatNumber(leader.ecosystem_score)}
-                </div>
-              </div>
-            </div>
-          ))}
+        
+        <div className="leaderboard-table-container minimal-table">
+            <table className="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th className="rank-header">Rank</th>
+                        <th className="address-header">Address</th>
+                        <th className="score-header">Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {leaders.slice(0, 10).map((leader) => (
+                        <tr key={leader.address} className="leaderboard-row">
+                            <td className="rank-cell">{getRankIcon(leader.rank)}</td>
+                            <td className="address-cell">
+                                <span className="address-display">{truncateAddress(leader.address)}</span>
+                            </td>
+                            <td className="score-cell">
+                                <span className="score-value">{formatNumber(leader.ecosystem_score, 2)}</span>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
       </div>
     );
@@ -276,13 +282,6 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
                 className="search-input"
               />
             </div>
-            <button 
-              onClick={() => setIsMinimal(true)}
-              className="toggle-button"
-              title="Minimize view"
-            >
-              <Minimize2 size={14} />
-            </button>
           </div>
         </div>
 
@@ -355,7 +354,6 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
                   key={leader.address}
                   className="leaderboard-row"
                   onClick={() => {
-                    console.log('Leader clicked:', leader.address);
                     window.open(`https://etherscan.io/address/${leader.address}`, '_blank');
                   }}
                 >
@@ -423,9 +421,31 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
       </div>
     );
   };
+  
+  const renderModal = (data) => {
+    return ReactDOM.createPortal(
+        <div className="widget-modal-overlay" onClick={() => setIsModalOpen(false)}>
+            <div className="widget-modal large" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h3>Ecosystem Leaderboard</h3>
+                    <button onClick={() => setIsModalOpen(false)} className="modal-close-btn"><X size={18}/></button>
+                </div>
+                <div className="modal-content">
+                    {renderFullContent(data)}
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+  }
 
   const renderContent = (data) => {
-    return isMinimal ? renderMinimalContent(data) : renderFullContent(data);
+    return (
+        <>
+            {renderMinimalContent(data)}
+            {isModalOpen && renderModal(data)}
+        </>
+    );
   };
 
   return (
@@ -433,7 +453,7 @@ const EcosystemLeaderboardWidget = ({ limit = 50, refreshInterval = 300000, ...p
       fetchData={fetchLeaderboardData}
       renderContent={renderContent}
       refreshInterval={refreshInterval}
-      className={`leaderboard-widget ${isMinimal ? 'minimal' : 'full'}`}
+      className={`leaderboard-widget minimal`}
       {...props}
     />
   );
